@@ -36,3 +36,6 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           SOURCE_DIR: './build' # name of the build folder
+
+# Note: I'll try to update this workflow in future, I have plan to add
+# AWS cloud front section as well
