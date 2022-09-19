@@ -1,0 +1,52 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: ["master"]
+
+jobs:
+  push_to_docker_hub_registry:
+    name: Push Docker Image to Docker Hub
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        with:
+          images: ${{ secrets.DOCKER_REGISTRY_NAMESPACE }}/${{ secrets.DOCKER_REPOSITORY }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs: [push_to_docker_hub_registry]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Deploy To DigitalOcean Server"
+        uses: appleboy/ssh-action@master
+
+        with:
+          host: ${{ secrets.HOST_IP_ADDRESS }}
+          username: ${{ secrets.HOST_USERNAME }}
+          key: ${{ secrets.HOST_SSH_KEY }}
+          port: ${{ secrets.HOST_SSH_PORT }}
+
+          script: |
+            docker login --username ${{ secrets.DOCKERHUB_USERNAME }} --password ${{ secrets.DOCKERHUB_PASSWORD }}
+            docker pull ${{ secrets.DOCKER_REGISTRY_NAMESPACE }}/${{ secrets.DOCKER_REPOSITORY }}:master
